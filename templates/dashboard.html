@@ -1,0 +1,99 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Dashboard | Studyday{% endblock %}
+{% block content %}
+<main class="dashboard-main" id="overview">
+    <header class="topbar">
+        <div class="topbar-leading">
+            <button class="icon-button menu-toggle" type="button" data-sidebar-toggle aria-label="Open navigation"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+            <div class="breadcrumb"><span>Workspace</span><span>/</span><strong>Overview</strong></div>
+        </div>
+        <div class="topbar-actions">
+            <label class="global-search"><svg viewBox="0 0 24 24"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 4.2 4.2"/></svg><input type="search" placeholder="Search your tasks..." aria-label="Search tasks" data-task-search><kbd>/</kbd></label>
+            <button class="icon-button theme-toggle" type="button" data-theme-toggle aria-label="Toggle theme"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.5"/><path d="M12 2.8v2m0 14.4v2m9.2-9.2h-2M4.8 12h-2m15.7-6.5-1.4 1.4M6.9 17.1l-1.4 1.4m13 0-1.4-1.4M6.9 6.9 5.5 5.5"/></svg></button>
+            <span class="topbar-divider"></span>
+            <div class="user-menu"><span class="avatar" aria-hidden="true">{{ request.user.username|first|upper }}</span><div class="user-details"><strong>{{ request.user.username }}</strong><span>Student</span></div></div>
+            <form action="{% url 'logout' %}" method="post" class="logout-form">{% csrf_token %}<button class="icon-button logout-button" type="submit" aria-label="Sign out" title="Sign out"><svg viewBox="0 0 24 24"><path d="M10 4H5.5A1.5 1.5 0 0 0 4 5.5v13A1.5 1.5 0 0 0 5.5 20H10M15 8l4 4-4 4m4-4H9"/></svg></button></form>
+        </div>
+    </header>
+
+    <div class="content-wrap">
+        <section class="welcome-row">
+            <div><p class="eyebrow">{{ today|date:"l, F j" }}</p><h1>Your week at a glance<span class="heading-period">.</span></h1><p class="welcome-copy">A clear view of what's ahead. You've got this.</p></div>
+            <div class="welcome-actions"><button class="button button-secondary" type="button" data-open-modal="task-modal">＋ Add task</button><button class="button button-primary" type="button" data-open-modal="class-modal">＋ Add class</button></div>
+        </section>
+
+        <section class="stats-grid" aria-label="Your study summary">
+            <article class="stat-card"><span class="stat-icon stat-icon-indigo">▦</span><div class="stat-label">Total classes</div><div class="stat-value">{{ schedules|length }}</div><div class="stat-caption">Weekly meetings</div></article>
+            <article class="stat-card"><span class="stat-icon stat-icon-amber">◷</span><div class="stat-label">Tasks pending</div><div class="stat-value">{{ pending_count }}</div><div class="stat-caption">Ready when you are</div></article>
+            <article class="stat-card"><span class="stat-icon stat-icon-rose">♡</span><div class="stat-label">Due this week</div><div class="stat-value">{{ due_this_week_count }}</div><div class="stat-caption">A little planning helps</div></article>
+            <article class="stat-card"><span class="stat-icon stat-icon-green">✓</span><div class="stat-label">Completed</div><div class="stat-value">{{ completed_count }}</div><div class="stat-caption">Look at you go</div></article>
+        </section>
+
+        <section class="dashboard-grid">
+            <article class="panel timetable-panel" id="timetable">
+                <div class="panel-heading"><div><p class="eyebrow">Your weekly rhythm</p><h2>Class timetable</h2></div><div class="view-toggle" role="group" aria-label="Timetable display"><button class="view-toggle-button is-selected" type="button" data-schedule-view="grid" aria-pressed="true">Grid</button><button class="view-toggle-button" type="button" data-schedule-view="list" aria-pressed="false">List</button></div></div>
+                {% if schedules %}
+                <div class="schedule-grid-view" data-schedule-grid>
+                    <div class="timetable-scroll"><div class="timetable">
+                        <div class="time-column"><div class="time-head">TIME</div>{% for hour in timetable_hours %}<div class="time-label">{{ hour.label }}</div>{% endfor %}</div>
+                        {% for day in weekdays %}
+                        <div class="day-column"><div class="day-head">{{ day.short }}</div>
+                            {% for schedule in schedules %}{% if schedule.day == day.name %}
+                            <article class="class-block class-color-{{ forloop.parentloop.counter }}" style="--class-start:{{ schedule.start_time|time:'G' }};--class-duration:{{ schedule.duration_slots }}">
+                                <strong>{{ schedule.subject_code }}</strong><span>{{ schedule.start_time|time:"g:i A" }} · {{ schedule.room }}</span>
+                                <div class="card-actions"><button class="mini-action" type="button" data-edit-schedule data-update-url="{% url 'schedule_update' schedule.pk %}" data-subject-name="{{ schedule.subject_name|escape }}" data-subject-code="{{ schedule.subject_code|escape }}" data-instructor="{{ schedule.instructor|escape }}" data-day="{{ schedule.day }}" data-start-time="{{ schedule.start_time|time:'H:i' }}" data-end-time="{{ schedule.end_time|time:'H:i' }}" data-room="{{ schedule.room|escape }}" aria-label="Edit {{ schedule.subject_name }}">✎</button><button class="mini-action mini-action-danger" type="button" data-confirm-delete data-delete-url="{% url 'schedule_delete' schedule.pk %}" data-delete-name="{{ schedule.subject_name|escape }}" aria-label="Delete {{ schedule.subject_name }}">×</button></div>
+                            </article>{% endif %}{% endfor %}
+                        </div>
+                        {% endfor %}
+                    </div></div>
+                    <p class="schedule-note"><span class="legend-dot"></span> Class time · Times shown in your local timezone</p>
+                </div>
+                <div class="schedule-list-view" data-schedule-list hidden>
+                    {% for schedule in schedules %}<div class="schedule-list-item">
+                        <span class="schedule-day-pill">{{ schedule.day|slice:":3" }}</span><div class="schedule-list-info"><strong>{{ schedule.subject_name }}</strong><span>{{ schedule.subject_code }} · {{ schedule.instructor }}</span></div><span class="schedule-list-time">{{ schedule.start_time|time:"g:i A" }}–{{ schedule.end_time|time:"g:i A" }}</span><span class="schedule-room">{{ schedule.room }}</span>
+                        <div class="schedule-list-actions"><button class="text-action" type="button" data-edit-schedule data-update-url="{% url 'schedule_update' schedule.pk %}" data-subject-name="{{ schedule.subject_name|escape }}" data-subject-code="{{ schedule.subject_code|escape }}" data-instructor="{{ schedule.instructor|escape }}" data-day="{{ schedule.day }}" data-start-time="{{ schedule.start_time|time:'H:i' }}" data-end-time="{{ schedule.end_time|time:'H:i' }}" data-room="{{ schedule.room|escape }}">Edit</button><button class="text-action text-action-danger" type="button" data-confirm-delete data-delete-url="{% url 'schedule_delete' schedule.pk %}" data-delete-name="{{ schedule.subject_name|escape }}">Delete</button></div>
+                    </div>{% endfor %}
+                </div>
+                {% else %}<div class="empty-state empty-state-compact"><span class="empty-illustration" aria-hidden="true">▦</span><h3>Your week is a blank canvas</h3><p>Add your first class and start shaping a routine that works for you.</p><button class="button button-primary button-small" type="button" data-open-modal="class-modal">Add your first class</button></div>{% endif %}
+            </article>
+
+            <aside class="side-panels">
+                <article class="panel today-panel"><div class="panel-heading panel-heading-small"><div><p class="eyebrow">Today</p><h2>On your schedule</h2></div><span class="date-bubble">{{ today|date:"D j" }}</span></div>
+                    {% if today_schedules %}<div class="today-timeline">{% for schedule in today_schedules %}<div class="timeline-item"><div class="timeline-time">{{ schedule.start_time|time:"g:i" }}<span>{{ schedule.start_time|time:"A" }}</span></div><div class="timeline-marker"></div><div class="timeline-content"><strong>{{ schedule.subject_name }}</strong><span>{{ schedule.subject_code }} · {{ schedule.room }}</span></div></div>{% endfor %}</div>
+                    {% else %}<div class="empty-state-tiny"><span class="tiny-sparkle">✦</span><p>No classes today. Enjoy the breathing room.</p></div>{% endif %}
+                </article>
+                <article class="panel due-panel"><div class="panel-heading panel-heading-small"><div><p class="eyebrow">Keep an eye on</p><h2>Due soon</h2></div>{% if due_soon_tasks %}<span class="small-count">{{ due_soon_tasks|length }}</span>{% endif %}</div>
+                    {% if due_soon_tasks %}<div class="due-list">{% for task in due_soon_tasks %}<div class="due-item" data-due-item data-deadline="{{ task.deadline|date:'c' }}"><span class="due-indicator {% if task.priority == 'High' %}due-indicator-high{% elif task.priority == 'Low' %}due-indicator-low{% endif %}"></span><div class="due-item-copy"><strong>{{ task.task_name }}</strong><span>{{ task.subject|default:task.task_type }}</span></div><span class="due-countdown" data-countdown>{{ task.deadline|date:"M j" }}</span></div>{% endfor %}</div>
+                    {% else %}<div class="empty-state-tiny"><span class="tiny-sparkle tiny-sparkle-green">✓</span><p>Nothing due this week. Take a well-earned breath.</p></div>{% endif %}
+                </article>
+            </aside>
+        </section>
+
+        <section class="panel tasks-panel" id="tasks">
+            <div class="panel-heading"><div><p class="eyebrow">Little by little</p><h2>Your tasks</h2></div><button class="button button-secondary button-small" type="button" data-open-modal="task-modal">＋ Add task</button></div>
+            <div class="task-toolbar"><div class="filter-chips" role="group" aria-label="Filter tasks"><button class="filter-chip is-active" type="button" data-task-filter="all" aria-pressed="true">All <span>{{ tasks|length }}</span></button><button class="filter-chip" type="button" data-task-filter="Pending" aria-pressed="false">Pending</button><button class="filter-chip" type="button" data-task-filter="In Progress" aria-pressed="false">In progress</button><button class="filter-chip" type="button" data-task-filter="Completed" aria-pressed="false">Completed</button></div><label class="task-search"><svg viewBox="0 0 24 24"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 4.2 4.2"/></svg><input type="search" placeholder="Find a task" aria-label="Find a task" data-task-search></label></div>
+            <div class="task-list" data-task-list>
+                {% for task in tasks %}<article class="task-row" data-task-row data-status="{{ task.status }}" data-search="{{ task.task_name|lower }} {{ task.subject|lower }} {{ task.task_type|lower }} {{ task.description|lower }}">
+                    <button class="task-check {% if task.status == 'Completed' %}is-checked{% endif %}" type="button" data-task-complete data-update-url="{% url 'task_update' task.pk %}" data-task-name="{{ task.task_name|escape }}" data-task-type="{{ task.task_type }}" data-subject="{{ task.subject|escape }}" data-description="{{ task.description|escape }}" data-deadline="{{ task.deadline|date:'Y-m-d\\TH:i' }}" data-status="{{ task.status }}" data-priority="{{ task.priority }}" aria-label="Toggle task completion" aria-pressed="{% if task.status == 'Completed' %}true{% else %}false{% endif %}"><svg viewBox="0 0 20 20"><path d="m4 10 4 4 8-8"/></svg></button>
+                    <div class="task-main"><strong class="task-title {% if task.status == 'Completed' %}is-completed{% endif %}">{{ task.task_name }}</strong><div class="task-meta"><span class="task-subject">{{ task.subject|default:task.task_type }}</span><span class="meta-divider">·</span><span>{{ task.task_type }}</span><span class="task-priority priority-{{ task.priority|lower }}">{{ task.priority }} priority</span></div></div>
+                    <div class="task-due"><span>Due</span><strong>{{ task.deadline|date:"M j, g:i A" }}</strong></div><span class="status-badge status-{{ task.status|slugify }}">{{ task.status }}</span>
+                    <div class="task-actions"><button class="icon-button task-action" type="button" data-edit-task data-update-url="{% url 'task_update' task.pk %}" data-task-name="{{ task.task_name|escape }}" data-task-type="{{ task.task_type }}" data-subject="{{ task.subject|escape }}" data-description="{{ task.description|escape }}" data-deadline="{{ task.deadline|date:'Y-m-d\\TH:i' }}" data-status="{{ task.status }}" data-priority="{{ task.priority }}" aria-label="Edit {{ task.task_name }}">✎</button><button class="icon-button task-action task-action-danger" type="button" data-confirm-delete data-delete-url="{% url 'task_delete' task.pk %}" data-delete-name="{{ task.task_name|escape }}" aria-label="Delete {{ task.task_name }}">×</button></div>
+                </article>{% empty %}<div class="empty-state task-empty"><span class="empty-illustration" aria-hidden="true">☷</span><h3>Your task list starts here</h3><p>Add an assignment, project, or little reminder. Future you will be glad.</p><button class="button button-primary button-small" type="button" data-open-modal="task-modal">Add a task</button></div>{% endfor %}
+                <div class="empty-state empty-state-compact search-empty" data-search-empty hidden><span class="empty-illustration" aria-hidden="true">⌕</span><h3>No tasks match that search</h3><p>Try another word or switch the filter.</p></div>
+            </div>
+        </section>
+
+        <section class="panel calendar-panel" id="calendar"><div class="panel-heading"><div><p class="eyebrow">Plan your month</p><h2>Calendar</h2></div><div class="calendar-controls"><button class="icon-button calendar-nav" type="button" data-calendar-prev aria-label="Previous month">‹</button><strong data-calendar-label></strong><button class="icon-button calendar-nav" type="button" data-calendar-next aria-label="Next month">›</button></div></div><div class="month-calendar" data-calendar-grid></div><div class="calendar-legend"><span><i class="calendar-dot calendar-dot-class"></i>Classes</span><span><i class="calendar-dot calendar-dot-task"></i>Tasks</span></div></section>
+        <section class="panel settings-panel" id="settings"><div class="panel-heading panel-heading-small"><div><p class="eyebrow">Make it yours</p><h2>Settings</h2></div></div><div class="setting-row"><div><strong>Appearance</strong><span>Choose a light or dark workspace</span></div><button class="button button-secondary button-small" type="button" data-theme-toggle>Toggle theme</button></div></section>
+        <footer class="page-footer"><span>Made for your next small step.</span><span>Studyday · Your space, your pace</span></footer>
+    </div>
+</main>
+
+<div class="modal-backdrop" data-modal="class-modal" aria-hidden="true"><section class="modal-dialog" role="dialog" aria-modal="true" aria-labelledby="class-modal-title"><div class="modal-heading"><div><p class="eyebrow">Weekly schedule</p><h2 id="class-modal-title">Add a class</h2></div><button class="icon-button modal-close" type="button" data-close-modal aria-label="Close dialog">×</button></div><form method="post" action="{% url 'schedule_create' %}" data-ajax-form data-kind="schedule">{% csrf_token %}<div class="modal-form-grid">{% for field in schedule_form %}<div class="field {% if field.name == 'subject_name' or field.name == 'instructor' %}field-span-2{% endif %}"><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}<span class="field-error" data-error-for="{{ field.name }}"></span></div>{% endfor %}</div><div class="modal-footer"><button class="button button-secondary" type="button" data-close-modal>Cancel</button><button class="button button-primary" type="submit">Save class</button></div></form></section></div>
+<div class="modal-backdrop" data-modal="task-modal" aria-hidden="true"><section class="modal-dialog modal-dialog-wide" role="dialog" aria-modal="true" aria-labelledby="task-modal-title"><div class="modal-heading"><div><p class="eyebrow">Keep your next step close</p><h2 id="task-modal-title">Add a task</h2></div><button class="icon-button modal-close" type="button" data-close-modal aria-label="Close dialog">×</button></div><form method="post" action="{% url 'task_create' %}" data-ajax-form data-kind="task">{% csrf_token %}<div class="modal-form-grid">{% for field in task_form %}<div class="field {% if field.name == 'task_name' or field.name == 'description' %}field-span-2{% endif %}"><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}<span class="field-error" data-error-for="{{ field.name }}"></span></div>{% endfor %}</div><div class="modal-footer"><button class="button button-secondary" type="button" data-close-modal>Cancel</button><button class="button button-primary" type="submit">Save task</button></div></form></section></div>
+<div class="modal-backdrop" data-modal="delete-modal" aria-hidden="true"><section class="modal-dialog modal-dialog-confirm" role="dialog" aria-modal="true" aria-labelledby="delete-modal-title"><span class="confirm-icon">!</span><button class="icon-button modal-close" type="button" data-close-modal aria-label="Close dialog">×</button><p class="eyebrow">Just checking</p><h2 id="delete-modal-title">Delete this item?</h2><p class="confirm-copy">You'll remove <strong data-delete-name>this item</strong> from your planner. This can't be undone.</p><form method="post" action="" data-ajax-form data-kind="delete">{% csrf_token %}<div class="modal-footer"><button class="button button-secondary" type="button" data-close-modal>Keep it</button><button class="button button-danger" type="submit">Yes, delete</button></div></form></section></div>
+<div class="modal-backdrop" data-modal="calendar-day-modal" aria-hidden="true"><section class="modal-dialog" role="dialog" aria-modal="true" aria-labelledby="calendar-day-title"><div class="modal-heading"><div><p class="eyebrow">Your plan</p><h2 id="calendar-day-title"></h2></div><button class="icon-button modal-close" type="button" data-close-modal aria-label="Close dialog">×</button></div><div data-calendar-day-content></div></section></div>
+<script type="application/json" id="calendar-data">{"tasks":[{% for task in tasks %}{"name":"{{ task.task_name|escapejs }}","type":"task","deadline":"{{ task.deadline|date:'c' }}","status":"{{ task.status|escapejs }}"}{% if not forloop.last or schedules %},{% endif %}{% endfor %}{% for schedule in schedules %}{"name":"{{ schedule.subject_name|escapejs }}","type":"class","day":"{{ schedule.day }}","start":"{{ schedule.start_time|time:'H:i' }}","end":"{{ schedule.end_time|time:'H:i' }}"}{% if not forloop.last %},{% endif %}{% endfor %}]}</script>
+{% endblock %}

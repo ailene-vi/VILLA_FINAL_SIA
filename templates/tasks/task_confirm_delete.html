@@ -1,0 +1,25 @@
+﻿{% extends 'base.html' %}
+
+{% block title %}Delete Task | Student Calendar{% endblock %}
+
+{% block content %}
+<div class="page-header narrow">
+    <div>
+        <p class="eyebrow">Confirmation</p>
+        <h2>Delete Task</h2>
+    </div>
+</div>
+
+<div class="confirm-card">
+    <p>Are you sure you want to delete:</p>
+    <h3>"{{ object.task_name }}"</h3>
+
+    <form method="post">
+        {% csrf_token %}
+        <div class="form-actions">
+            <button class="button danger" type="submit">Delete</button>
+            <a class="button secondary" href="{% url 'app:task_list' %}">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

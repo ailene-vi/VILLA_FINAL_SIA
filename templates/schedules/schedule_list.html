@@ -1,0 +1,49 @@
+﻿{% extends 'base.html' %}
+
+{% block title %}Schedules | Student Calendar{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <p class="eyebrow">Academic Schedule</p>
+        <h2>All Schedules</h2>
+    </div>
+    <a class="button primary" href="{% url 'app:schedule_add' %}">+ Add Schedule</a>
+</div>
+
+<div class="table-card">
+    {% if schedules %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Subject</th>
+                    <th>Code</th>
+                    <th>Instructor</th>
+                    <th>Day</th>
+                    <th>Time</th>
+                    <th>Room</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for schedule in schedules %}
+                    <tr>
+                        <td>{{ schedule.subject_name }}</td>
+                        <td>{{ schedule.subject_code }}</td>
+                        <td>{{ schedule.instructor }}</td>
+                        <td>{{ schedule.day }}</td>
+                        <td>{{ schedule.start_time|time:"g:i A" }} - {{ schedule.end_time|time:"g:i A" }}</td>
+                        <td>{{ schedule.room }}</td>
+                        <td class="row-actions">
+                            <a class="link-button" href="{% url 'app:schedule_edit' schedule.pk %}">Edit</a>
+                            <a class="link-button danger" href="{% url 'app:schedule_delete' schedule.pk %}">Delete</a>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p class="empty-state">No schedules added yet.</p>
+    {% endif %}
+</div>
+{% endblock %}
